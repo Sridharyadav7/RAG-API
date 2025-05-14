@@ -150,3 +150,7 @@ async def ask_question(query: str = Query(..., description="Your medical questio
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "rag_initialized": rag_chain is not None}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
