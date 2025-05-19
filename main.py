@@ -7,41 +7,11 @@ from pydantic import BaseModel
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone as PineconeClient
-from langchain.prompts import PromptTemplate  # Import PromptTemplate
+from langchain.prompts import PromptTemplate 
+from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
 import asyncio
-
-class GeminiLLM(LLM, BaseModel):
-    model_name: str = "gemini-1.5-flash"
-    temperature: float = 0.3
-    max_tokens: int = 1024
-    system_instruction: Optional[str] = "You are a helpful medical information assistant providing complete and accurate answers."
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-        self._model = genai.GenerativeModel(
-            model_name=self.model_name,
-            system_instruction=self.system_instruction
-        )
-        self._chat = self._model.start_chat()
-
-    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-        response = self._chat.send_message(
-            prompt,
-            generation_config={
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_tokens
-            }
-        )
-        return response.text
-
-    @property
-    def _llm_type(self) -> str:
-        return "gemini"
-    
-
 
 
 load_dotenv()
@@ -61,12 +31,13 @@ async def startup_event():
         PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
         
         # Initialize Ollama with better parameters
-        llm = GeminiLLM(
-            model_name="gemini-1.5-flash",
+        llm = ChatOpenAI(
+            model_name="gpt-4",  # or "gpt-4"
             temperature=0.3,
             max_tokens=1024,
-            system_instruction="You are a helpful medical information assistant providing complete and accurate answers."
+            openai_api_key=os.getenv("OPENAI_API_KEY")
         )
+
         
         embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         
@@ -135,10 +106,7 @@ async def ask_question(query: str = Query(..., description="Your medical questio
         cleaned_answer = raw_answer.replace("\n", " ").replace("*", "").replace("•", "").strip()
 
         
-        return {
-            "query": query,
-            "answer": cleaned_answer
-        }
+        return cleaned_answer
         
     except Exception as e:
         import traceback
